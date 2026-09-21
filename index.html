@@ -4,6 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Nihongo Master - 2.136 Hán Tự Thường Dụng & Từ Vựng N5</title>
+  <script src="https://sdk.minepi.com/pi-sdk.js"></script>
   <style>
     :root {
       --primary: #4f46e5;
@@ -8190,6 +8191,40 @@ const POSTER_2136_STR =
       await initKanjiList();
       loadKanjiStrokes(FULL_2136_LIST[0] || "一", 1);
     })();
+  </script>
+<!-- DÁN ĐOẠN DƯỚI ĐÂY VÀO TRƯỚC THẺ </body> -->
+  <script>
+    let appSessionToken = null;
+    let currentUser = null;
+
+    function onIncompletePaymentFound(payment) {
+      console.log("Incomplete payment found:", payment);
+    }
+
+    async function authenticateWithAppStudio(accessToken) {
+      const response = await fetch("https://backend.appstudio-u7cm9zhmha0ruwv8.piappengine.com/pi/auth/v1/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ accessToken })
+      });
+      if (!response.ok) throw new Error("Xác thực App Studio thất bại");
+      return await response.json();
+    }
+
+    async function initPiAuth() {
+      try {
+        await window.Pi.init({ version: "2.0" });
+        const authResult = await window.Pi.authenticate(["username"], onIncompletePaymentFound);
+        const authData = await authenticateWithAppStudio(authResult.accessToken);
+        appSessionToken = authData.sessionToken;
+        currentUser = authData.user;
+        console.log("Đã đăng nhập Pi:", currentUser.username);
+      } catch (error) {
+        console.error("Lỗi xác thực Pi:", error);
+      }
+    }
+
+    window.addEventListener("DOMContentLoaded", initPiAuth);
   </script>
 </body>
 </html>
