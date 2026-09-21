@@ -8154,16 +8154,60 @@ const POSTER_2136_STR =
     drawCanvas.addEventListener('touchmove', draw);
     window.addEventListener('touchend', stopDraw);
 
-    // Phát âm tiếng Nhật
-    function speakJapanese(text, event) {
-      if (event) event.stopPropagation();
-      if (!('speechSynthesis' in window)) return;
+   // Phát âm tiếng Nhật (Hỗ trợ tốt trên Pi Browser & Điện thoại)
+function speakJapanese(text, event) {
+  if (event) event.stopPropagation();
+  if (!text) return;
+
+  // 1. Thử dùng SpeechSynthesis với thiết lập giọng chuẩn
+  if ('speechSynthesis' in window) {
+    try {
       window.speechSynthesis.cancel();
       const utterance = new SpeechSynthesisUtterance(text);
       utterance.lang = 'ja-JP';
       utterance.rate = 0.85;
+
+      const voices = window.speechSynthesis.getVoices();
+      const jaVoice = voices.find(v => v.lang === 'ja-JP' || v.lang.startsWith('ja'));
+      if (jaVoice) {
+        utterance.voice = jaVoice;
+      }
+
+      // Đặt timeout: Nếu sau 500ms không thấy nói (đặc trưng lỗi trên Pi Browser) thì dùng Audio fallback
+      let spoken = false;
+      utterance.onstart = () => { spoken = true; };
+      
       window.speechSynthesis.speak(utterance);
+
+      setTimeout(() => {
+        if (!spoken) {
+          playAudioOnline(text);
+        }
+      }, 500);
+      return;
+    } catch (e) {
+      console.warn("SpeechSynthesis lỗi, chuyển sang phát qua online audio:", e);
     }
+  }
+
+  // 2. Dự phòng nếu thiết bị không hỗ trợ SpeechSynthesis
+  playAudioOnline(text);
+}
+
+// Hàm dự phòng phát âm tiếng Nhật qua luồng Audio online
+function playAudioOnline(text) {
+  try {
+    const encodedText = encodeURIComponent(text);
+    // Nguồn âm thanh chuẩn tiếng Nhật từ máy chủ TTS
+    const url = `https://translate.google.com/translate_tts?ie=UTF-8&q=${encodedText}&tl=ja&client=tw-ob`;
+    const audio = new Audio(url);
+    audio.play().catch(err => {
+      console.error("Không thể phát âm thanh trực tuyến:", err);
+    });
+  } catch (err) {
+    console.error("Lỗi âm thanh:", err);
+  }
+}
 
     function speakCurrentKanji() {
       speakJapanese(currentChar);
